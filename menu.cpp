@@ -22,31 +22,40 @@ void planRoute(Graph<int>& g, string start, string end) {
     cout << "Planning route from " << start << " to " << end << "...\n";
     int src = stoi(start);
     int dst = stoi(end);
-    
-    vector<int> path = RoutePlanner::dijkstraShortestPath(g, src, dst);
 
-    if (path.empty()) {
+    double totalCost = 0;
+    
+    vector<int> bestPath = RoutePlanner::dijkstraShortestPath(g, src, dst, totalCost);
+
+    if (bestPath.empty()) {
         cout << "BestDrivingRoute:none\n";
+        cout << "AlternativeDrivingRoute:none\n";
         return;
     }
 
-    int totalCost = 0;
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-        Vertex<int>* v = g.findVertex(path[i]);
-        for (auto e : v->getAdj()) {
-            if (e->getDest()->getInfo() == path[i + 1]) {
-                totalCost += e->getDrivingWeight();
-                break;
-            }
-        }
-    }
-
     cout << "BestDrivingRoute:";
-    for (size_t i = 0; i < path.size(); ++i) {
-        cout << path[i];
-        if (i != path.size() - 1) cout << ",";
+    for (size_t i = 0; i < bestPath.size(); ++i) {
+        cout << bestPath[i];
+        if (i != bestPath.size() - 1) cout << ",";
     }
     cout << "(" << totalCost << ")\n";
+
+    double totalCost2 = 0;
+
+    vector<int> altPath = RoutePlanner::findAlternativePath(g, src, dst, bestPath, totalCost2);
+
+    if (altPath.empty()) {
+        cout << "AlternativeDrivingRoute:none\n";
+        return;
+    }
+
+
+    cout << "AlternativeDrivingRoute:";
+    for (size_t i = 0; i < altPath.size(); ++i) {
+        cout << altPath[i];
+        if (i != altPath.size() - 1) cout << ",";
+    }
+    cout << "(" << totalCost2 << ")\n";
 }
 
 void planRoute_(string start, string end) {
@@ -154,7 +163,7 @@ void runBatchMode() {
                     }
 
                     if (avoidNodes.empty() && avoidSegments.empty() && MaxWalkTime.empty() && includeNode.empty()) {
-                        planRoute(source, destination, output);
+                        //planRoute(source, destination, output);
                     } else if(MaxWalkTime.empty()) {
                         planRouteWithExclusions_(source, destination, avoidNodes, avoidSegments, includeNode, output);
                     }
