@@ -48,7 +48,6 @@ string trim(const string &s) {
 Graph<int> createGraphs::createGraphFromCSV(const string& locationsFile, const string& distancesFile) {
     Graph<int> g;
     unordered_map<string, int> codeToId;
-    unordered_map<int, bool> hasParking;
 
     // Load locations.csv
     ifstream locFile(locationsFile);
@@ -69,17 +68,16 @@ Graph<int> createGraphs::createGraphFromCSV(const string& locationsFile, const s
         getline(ss, parkingStr, ',');
 
         int id = stoi(idStr);
-        int parking = stoi(parkingStr);
+        int parking = stoi(trim(parkingStr));
 
         g.addVertex(id);
         codeToId[code] = id;
-        hasParking[id] = (parking == 1);
 
         Vertex<int>* v = g.findVertex(id);
         if (v) {
             v->setInfo(id);
             v->setLocation(name);
-            v->setParking(parking == 1);
+            v->setParking(parking > 0); // accept values > 1 as valid parking
             v->setCode(code);
         }
     }
@@ -112,34 +110,27 @@ Graph<int> createGraphs::createGraphFromCSV(const string& locationsFile, const s
         int id1 = codeToId[code1];
         int id2 = codeToId[code2];
 
-        double driveTime = INF;
-        double walkTime = INF;
+        bool canDrive = driveStr != "X";
+        bool canWalk = walkStr != "X";
 
-        bool canDrive = (driveStr != "X");
-        bool canWalk = (walkStr != "X");
+        if (!canDrive && !canWalk) continue; // No valid edge at all
 
-        if (canDrive) driveTime = stod(driveStr);
-        if (canWalk) walkTime = stod(walkStr);
+        double driveTime = canDrive ? stod(driveStr) : INF;
+        double walkTime = canWalk ? stod(walkStr) : INF;
 
-        // Add bidirectional edge
-        if (g.findVertex(id1) && g.findVertex(id2)) {
-            auto added = g.addBidirectionalEdge(id1, id2, driveTime);
-            if (added) {
-                Vertex<int>* v1 = g.findVertex(id1);
-                Vertex<int>* v2 = g.findVertex(id2);
+        // Add driving edge (INF if not drivable)
+        g.addEdge(id1, id2, driveTime);
+        g.addEdge(id2, id1, driveTime);
 
-                for (Edge<int>* e : v1->getAdj()) {
-                    if (e->getDest() == v2) {
-                        e->setWalkingWeight(canWalk ? walkTime : INF);
-                    }
-                }
+        // Set walking weights in both directions
+        for (Edge<int>* e : g.findVertex(id1)->getAdj()) {
+            if (e->getDest()->getInfo() == id2)
+                e->setWalkingWeight(walkTime);
+        }
 
-                for (Edge<int>* e : v2->getAdj()) {
-                    if (e->getDest() == v1) {
-                        e->setWalkingWeight(canWalk ? walkTime : INF);
-                    }
-                }
-            }
+        for (Edge<int>* e : g.findVertex(id2)->getAdj()) {
+            if (e->getDest()->getInfo() == id1)
+                e->setWalkingWeight(walkTime);
         }
     }
 

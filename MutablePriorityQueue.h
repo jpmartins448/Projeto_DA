@@ -10,6 +10,7 @@
 #define DA_TP_CLASSES_MUTABLEPRIORITYQUEUE
 
 #include <vector>
+#include <unordered_map>
 
 /**
  * class T must have: (i) accessible field int queueIndex; (ii) operator< defined.
